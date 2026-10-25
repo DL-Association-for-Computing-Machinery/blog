@@ -1,0 +1,27 @@
+{
+  "name": "ecut-association-blog",
+  "private": true,
+  "workspaces": [
+    "fd",
+    "bd"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web -c cyan,blue \"npm run dev -w bd\" \"npm run dev -w fd\"",
+    "build": "npm run build -w fd && npm run build -w bd",
+    "check": "npm run check -w fd && npm run check -w bd",
+    "db:generate": "npm run db:generate -w bd",
+    "db:migrate": "npm run db:migrate -w bd",
+    "db:seed": "npm run db:seed -w bd",
+    "test": "npm run test -w bd",
+    "dev:services": "node db/dev-services.mjs",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1",
+    "concurrently": "^9.2.1",
+    "embedded-postgres": "^17.6.0-beta.15",
+    "pg": "^8.23.1",
+    "prettier": "^3.9.10",
+    "s3rver": "^3.7.1"
+  }
+}

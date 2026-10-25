@@ -1,0 +1,106 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+enum Role {
+  MEMBER
+  ADMIN
+}
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+}
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String
+  passwordHash String
+  role         Role      @default(MEMBER)
+  createdAt    DateTime  @default(now())
+  posts        Post[]
+  comments     Comment[]
+  sessions     Session[]
+  assets       Asset[]
+}
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  @@index([expiresAt])
+  @@index([userId])
+}
+model Category {
+  id    String @id @default(cuid())
+  slug  String @unique
+  name  String @unique
+  posts Post[]
+}
+model Tag {
+  id    String @id @default(cuid())
+  slug  String @unique
+  name  String @unique
+  posts PostTag[]
+}
+model Post {
+  id          String     @id @default(cuid())
+  slug        String     @unique
+  title       String
+  excerpt     String
+  content     String     @db.Text
+  status      PostStatus @default(DRAFT)
+  featured    Boolean    @default(false)
+  visual      String     @default("code")
+  authorId    String
+  author      User       @relation(fields: [authorId], references: [id])
+  categoryId  String
+  category    Category   @relation(fields: [categoryId], references: [id])
+  coverId     String?
+  cover       Asset?     @relation("PostCover", fields: [coverId], references: [id], onDelete: SetNull)
+  tags        PostTag[]
+  comments    Comment[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  publishedAt DateTime?
+  @@index([status, publishedAt(sort: Desc)])
+  @@index([authorId, status])
+  @@index([categoryId, status])
+}
+model PostTag {
+  postId String
+  tagId  String
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag    Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  @@id([postId, tagId])
+  @@index([tagId])
+}
+model Comment {
+  id        String    @id @default(cuid())
+  content   String    @db.VarChar(2000)
+  postId    String
+  post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User      @relation(fields: [authorId], references: [id])
+  parentId  String?
+  parent    Comment?  @relation("Replies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[] @relation("Replies")
+  createdAt DateTime  @default(now())
+  @@index([postId, createdAt])
+  @@index([parentId])
+}
+// Object bytes live in S3-compatible DFS; only metadata is stored in PostgreSQL.
+model Asset {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  mimeType  String
+  size      Int
+  ownerId   String
+  owner     User     @relation(fields: [ownerId], references: [id])
+  createdAt DateTime @default(now())
+  covers    Post[]   @relation("PostCover")
+  @@index([ownerId])
+}
